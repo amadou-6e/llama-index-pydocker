@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llama-index-pydocker"
+version = "0.1.0"
+description = "LlamaIndex store wrappers that auto-provision Docker containers via py-dockerdb"
+readme = { file = "README.md", content-type = "text/markdown" }
+requires-python = ">=3.10"
+authors = [
+  { name = "Amadou Wolfgang Cisse", email = "amadou.6e@googlemail.com" }
+]
+dependencies = [
+  "py-dockerdb",
+  "llama-index-core",
+]
+
+[project.optional-dependencies]
+neo4j = [
+  "llama-index-graph-stores-neo4j",
+  "neo4j",
+]
+qdrant = [
+  "llama-index-vector-stores-qdrant",
+  "qdrant-client",
+]
+postgres = [
+  "llama-index-vector-stores-postgres",
+  "psycopg2-binary",
+  "pgvector",
+]
+opensearch = [
+  "llama-index-vector-stores-opensearch",
+  "opensearch-py",
+]
+all = [
+  "llama-index-pydocker[neo4j]",
+  "llama-index-pydocker[qdrant]",
+  "llama-index-pydocker[postgres]",
+  "llama-index-pydocker[opensearch]",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["llama_index_pydocker*"]
+
+[tool.pytest.ini_options]
+timeout = 300
+timeout_method = "thread"
+addopts = "-vv -s"
