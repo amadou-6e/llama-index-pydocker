@@ -14,6 +14,7 @@ from tests.conftest import TEMP_DIR, free_port, stop_containers
 
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_containers():
+    """Ensure Qdrant test containers are removed before and after module tests."""
     stop_containers("test-pydocker-qdrant")
     yield
     stop_containers("test-pydocker-qdrant")
@@ -21,11 +22,13 @@ def cleanup_containers():
 
 @pytest.fixture
 def qdrant_port():
+    """Provide a free Qdrant port for tests."""
     return free_port()
 
 
 @pytest.fixture
 def qdrant_config(qdrant_port):
+    """Create a unique Qdrant Docker config for a test run."""
     name = f"test-pydocker-qdrant-{uuid.uuid4().hex[:8]}"
     return QdrantConfig(
         database="test_collection",
@@ -43,6 +46,7 @@ def qdrant_config(qdrant_port):
 
 @pytest.mark.timeout(180)
 def test_localhost_starts_container(qdrant_config, qdrant_port):
+    """Localhost Qdrant URL should start a managed Docker container."""
     from llama_index_pydocker import QdrantVectorStore
 
     store = QdrantVectorStore(
@@ -57,6 +61,7 @@ def test_localhost_starts_container(qdrant_config, qdrant_port):
 
 @pytest.mark.timeout(180)
 def test_context_manager_stops_container(qdrant_config, qdrant_port):
+    """Context exit should stop and remove the managed Qdrant container."""
     from llama_index_pydocker import QdrantVectorStore
 
     with QdrantVectorStore(
@@ -73,6 +78,7 @@ def test_context_manager_stops_container(qdrant_config, qdrant_port):
 
 @pytest.mark.timeout(180)
 def test_port_inferred_from_url(qdrant_config, qdrant_port):
+    """Qdrant port from URL should override docker config port."""
     from llama_index_pydocker import QdrantVectorStore
 
     wrong_port_config = qdrant_config.model_copy(update={"port": 9999})
@@ -88,6 +94,7 @@ def test_port_inferred_from_url(qdrant_config, qdrant_port):
 # ── remote / passthrough tests ────────────────────────────────────────────────
 
 def test_remote_url_no_docker():
+    """Remote Qdrant URL should bypass Docker provisioning."""
     from llama_index.vector_stores.qdrant import QdrantVectorStore as _Base
     from llama_index_pydocker import QdrantVectorStore
     from qdrant_client import QdrantClient

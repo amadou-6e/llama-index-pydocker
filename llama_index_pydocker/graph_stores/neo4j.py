@@ -4,7 +4,7 @@ from __future__ import annotations
 from llama_index.graph_stores.neo4j import Neo4jGraphStore as _Neo4jGraphStore
 
 from docker_db import Neo4jConfig, Neo4jDB
-from llama_index_pydocker._utils import is_localhost, parse_url
+from llama_index_pydocker._url import is_localhost, parse_url
 
 
 class Neo4jGraphStore(_Neo4jGraphStore):
@@ -42,9 +42,29 @@ class Neo4jGraphStore(_Neo4jGraphStore):
         username: str = "neo4j",
         password: str,
         database: str = "neo4j",
+        refresh_schema: bool = False,
         docker_config: Neo4jConfig | None = None,
         **kwargs,
     ):
+        """Initialize a Neo4j graph store with optional Docker provisioning.
+
+        Parameters
+        ----------
+        url : str
+            Neo4j Bolt URL.
+        username : str, default="neo4j"
+            Neo4j username.
+        password : str
+            Neo4j password.
+        database : str, default="neo4j"
+            Target Neo4j database name.
+        refresh_schema : bool, default=False
+            Whether to refresh schema metadata on initialization.
+        docker_config : Neo4jConfig | None, optional
+            Container configuration used when URL resolves to localhost.
+        **kwargs
+            Extra keyword arguments forwarded to the base graph store.
+        """
         self._db: Neo4jDB | None = None
         host, port = parse_url(url)
 
@@ -59,16 +79,42 @@ class Neo4jGraphStore(_Neo4jGraphStore):
             password=password,
             url=url,
             database=database,
+            refresh_schema=refresh_schema,
             **kwargs,
         )
 
     def stop(self):
-        """Stop and remove the managed Docker container, if any."""
+        """Stop and remove the managed Docker container, if any.
+
+        Returns
+        -------
+        None
+            This method has side effects only.
+        """
         if self._db is not None:
-            self._db.stop_db()
+            self._db.delete_db(running_ok=True)
 
     def __enter__(self):
+        """Enter context-manager mode.
+
+        Returns
+        -------
+        Neo4jGraphStore
+            The current store instance.
+        """
         return self
 
     def __exit__(self, *_):
+        """Exit context-manager mode and stop managed resources.
+
+        Parameters
+        ----------
+        *_ : tuple
+            Standard context manager exception tuple (unused).
+
+        Returns
+        -------
+        None
+            This method has side effects only.
+        """
         self.stop()

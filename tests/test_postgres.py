@@ -14,6 +14,7 @@ from tests.conftest import TEMP_DIR, free_port, stop_containers
 
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_containers():
+    """Ensure Postgres test containers are removed before and after module tests."""
     stop_containers("test-pydocker-postgres")
     yield
     stop_containers("test-pydocker-postgres")
@@ -21,11 +22,13 @@ def cleanup_containers():
 
 @pytest.fixture
 def pg_port():
+    """Provide a free Postgres port for tests."""
     return free_port()
 
 
 @pytest.fixture
 def pg_config(pg_port):
+    """Create a unique Postgres Docker config for a test run."""
     name = f"test-pydocker-postgres-{uuid.uuid4().hex[:8]}"
     return PostgresConfig(
         user="testuser",
@@ -42,6 +45,7 @@ def pg_config(pg_port):
 
 @pytest.fixture
 def conn_string(pg_port):
+    """Build a localhost Postgres connection string for tests."""
     return f"postgresql://testuser:testpassword@localhost:{pg_port}/vectordb"
 
 
@@ -49,6 +53,7 @@ def conn_string(pg_port):
 
 @pytest.mark.timeout(180)
 def test_localhost_starts_container(pg_config, conn_string):
+    """Localhost PG DSN should start a managed Docker container."""
     from llama_index_pydocker import PGVectorStore
 
     store = PGVectorStore(
@@ -64,6 +69,7 @@ def test_localhost_starts_container(pg_config, conn_string):
 
 @pytest.mark.timeout(180)
 def test_context_manager_stops_container(pg_config, conn_string):
+    """Context exit should stop and remove the managed Postgres container."""
     from llama_index_pydocker import PGVectorStore
 
     with PGVectorStore(
@@ -80,6 +86,7 @@ def test_context_manager_stops_container(pg_config, conn_string):
 
 @pytest.mark.timeout(180)
 def test_port_inferred_from_url(pg_config, conn_string, pg_port):
+    """PG port from connection string should override docker config port."""
     from llama_index_pydocker import PGVectorStore
 
     wrong_port_config = pg_config.model_copy(update={"port": 9999})
@@ -95,6 +102,7 @@ def test_port_inferred_from_url(pg_config, conn_string, pg_port):
 # ── remote / passthrough tests ────────────────────────────────────────────────
 
 def test_remote_url_no_docker():
+    """Remote PG DSN should bypass Docker provisioning."""
     from llama_index.vector_stores.postgres import PGVectorStore as _Base
     from llama_index_pydocker import PGVectorStore
 

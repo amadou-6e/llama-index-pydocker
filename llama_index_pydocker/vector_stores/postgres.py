@@ -4,7 +4,7 @@ from __future__ import annotations
 from llama_index.vector_stores.postgres import PGVectorStore as _PGVectorStore
 
 from docker_db import PostgresConfig, PostgresDB
-from llama_index_pydocker._utils import is_localhost, parse_url
+from llama_index_pydocker._url import is_localhost, parse_url
 
 
 class PGVectorStore(_PGVectorStore):
@@ -37,8 +37,19 @@ class PGVectorStore(_PGVectorStore):
         docker_config: PostgresConfig | None = None,
         **kwargs,
     ):
-        self._db: PostgresDB | None = None
+        """Initialize a PGVector store with optional Docker provisioning.
+
+        Parameters
+        ----------
+        connection_string : str
+            PostgreSQL connection string.
+        docker_config : PostgresConfig | None, optional
+            Container configuration used when host resolves to localhost.
+        **kwargs
+            Extra keyword arguments forwarded to the base vector store.
+        """
         host, port = parse_url(connection_string)
+        _db: PostgresDB | None = None
 
         if is_localhost(host):
             parsed = _parse_pg_dsn(connection_string)
@@ -48,25 +59,66 @@ class PGVectorStore(_PGVectorStore):
                 database=parsed["database"],
             )
             cfg = cfg.model_copy(update={"port": port or cfg.port, "host": host})
-            self._db = PostgresDB(cfg)
-            self._db.create_db()
+            _db = PostgresDB(cfg)
+            _db.create_db()
 
         super().__init__(connection_string=connection_string, **kwargs)
+        # Use object.__setattr__ to bypass Pydantic's __setattr__ and store _db
+        # directly in the instance __dict__.  Plain ``self._db = _db`` would be
+        # swallowed or raise because PGVectorStore is a Pydantic model.
+        object.__setattr__(self, '_db', _db)
 
     def stop(self):
-        """Stop and remove the managed Docker container, if any."""
-        if self._db is not None:
-            self._db.stop_db()
+        """Stop and remove the managed Docker container, if any.
+
+        Returns
+        -------
+        None
+            This method has side effects only.
+        """
+        db = self.__dict__.get('_db')
+        if db is not None:
+            db.delete_db(running_ok=True)
 
     def __enter__(self):
+        """Enter context-manager mode.
+
+        Returns
+        -------
+        PGVectorStore
+            The current store instance.
+        """
         return self
 
     def __exit__(self, *_):
+        """Exit context-manager mode and stop managed resources.
+
+        Parameters
+        ----------
+        *_ : tuple
+            Standard context manager exception tuple (unused).
+
+        Returns
+        -------
+        None
+            This method has side effects only.
+        """
         self.stop()
 
 
 def _parse_pg_dsn(dsn: str) -> dict:
-    """Extract user, password, database from a postgresql:// DSN."""
+    """Extract Postgres credentials and database from a DSN string.
+
+    Parameters
+    ----------
+    dsn : str
+        PostgreSQL DSN string.
+
+    Returns
+    -------
+    dict
+        Dictionary with ``user``, ``password``, and ``database`` keys.
+    """
     from urllib.parse import urlparse
     p = urlparse(dsn)
     return {

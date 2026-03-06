@@ -34,11 +34,17 @@ opensearch = [
   "llama-index-vector-stores-opensearch",
   "opensearch-py",
 ]
+ollama = [
+  "llama-index-llms-ollama",
+  "llama-index-embeddings-ollama",
+  "tqdm",
+]
 all = [
   "llama-index-pydocker[neo4j]",
   "llama-index-pydocker[qdrant]",
   "llama-index-pydocker[postgres]",
   "llama-index-pydocker[opensearch]",
+  "llama-index-pydocker[ollama]",
 ]
 
 [tool.setuptools.packages.find]

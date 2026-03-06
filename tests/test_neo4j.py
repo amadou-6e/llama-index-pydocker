@@ -14,6 +14,7 @@ from tests.conftest import TEMP_DIR, free_port, stop_containers
 
 @pytest.fixture(scope="module", autouse=True)
 def cleanup_containers():
+    """Ensure Neo4j test containers are removed before and after module tests."""
     stop_containers("test-pydocker-neo4j")
     yield
     stop_containers("test-pydocker-neo4j")
@@ -21,16 +22,19 @@ def cleanup_containers():
 
 @pytest.fixture
 def bolt_port():
+    """Provide a free Bolt port for Neo4j tests."""
     return free_port()
 
 
 @pytest.fixture
 def http_port():
+    """Provide a free HTTP port for Neo4j tests."""
     return free_port()
 
 
 @pytest.fixture
 def neo4j_config(bolt_port, http_port):
+    """Create a unique Neo4j Docker config for a test run."""
     name = f"test-pydocker-neo4j-{uuid.uuid4().hex[:8]}"
     return Neo4jConfig(
         password="testpassword",
@@ -48,6 +52,7 @@ def neo4j_config(bolt_port, http_port):
 
 @pytest.mark.timeout(300)
 def test_localhost_starts_container(neo4j_config, bolt_port):
+    """Localhost Neo4j URL should start a managed Docker container."""
     from llama_index_pydocker import Neo4jGraphStore
 
     store = Neo4jGraphStore(
@@ -68,6 +73,7 @@ def test_localhost_starts_container(neo4j_config, bolt_port):
 
 @pytest.mark.timeout(300)
 def test_context_manager_stops_container(neo4j_config, bolt_port):
+    """Context exit should stop and remove the managed Neo4j container."""
     from llama_index_pydocker import Neo4jGraphStore
 
     with Neo4jGraphStore(
@@ -86,6 +92,7 @@ def test_context_manager_stops_container(neo4j_config, bolt_port):
 
 @pytest.mark.timeout(300)
 def test_graph_write_and_read(neo4j_config, bolt_port):
+    """Graph writes should be persisted and queryable in the test container."""
     from llama_index_pydocker import Neo4jGraphStore
 
     with Neo4jGraphStore(
@@ -159,4 +166,5 @@ def test_remote_url_no_docker():
         password="secret",
         url=remote_url,
         database="neo4j",
+        refresh_schema=False,
     )

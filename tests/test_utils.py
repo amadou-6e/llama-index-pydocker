@@ -12,6 +12,7 @@ from llama_index_pydocker._utils import is_localhost, parse_url
     ("https://cluster.qdrant.io:6333", "cluster.qdrant.io", 6333),
 ])
 def test_parse_url(url, expected_host, expected_port):
+    """Validate host and port parsing from URL-like strings."""
     host, port = parse_url(url)
     assert host == expected_host
     assert port == expected_port
@@ -27,4 +28,5 @@ def test_parse_url(url, expected_host, expected_port):
     ("cluster.qdrant.io", False),
 ])
 def test_is_localhost(host, expected):
+    """Validate localhost detection for loopback and remote hosts."""
     assert is_localhost(host) is expected
