@@ -46,6 +46,13 @@ all = [
   "llama-index-pydocker[opensearch]",
   "llama-index-pydocker[ollama]",
 ]
+docs = [
+  "sphinx>=7",
+  "furo",
+  "myst-parser",
+  "nbsphinx",
+  "sphinx-autobuild",
+]
 
 [tool.setuptools.packages.find]
 where = ["."]
