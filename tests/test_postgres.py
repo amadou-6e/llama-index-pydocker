@@ -7,8 +7,9 @@ import docker
 import pytest
 
 from docker_db import PostgresConfig
-from tests.conftest import TEMP_DIR, free_port, stop_containers
+from tests.conftest import TEMP_DIR, TEST_DIR, free_port, stop_containers
 
+_CONFIGS_DIR = TEST_DIR / "configs" / "postgres"
 
 # ── fixtures ──────────────────────────────────────────────────────────────────
 
@@ -35,11 +36,15 @@ def pg_config(pg_port):
         password="testpassword",
         database="vectordb",
         project_name="test",
+        image_name=f"test-pydocker-postgres-image-{uuid.uuid4().hex[:8]}:latest",
         container_name=name,
+        workdir=_CONFIGS_DIR,
+        dockerfile_path=_CONFIGS_DIR / "Dockerfile",
+        init_script=_CONFIGS_DIR / "initdb.sh",
         volume_path=Path(TEMP_DIR, "pgdata", name),
         port=pg_port,
-        retries=20,
-        delay=2,
+        retries=30,
+        delay=3,
     )
 
 

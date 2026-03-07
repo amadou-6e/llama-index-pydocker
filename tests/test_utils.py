@@ -1,6 +1,6 @@
 """Tests for URL parsing and localhost detection utilities."""
 import pytest
-from llama_index_pydocker._utils import is_localhost, parse_url
+from llama_index_pydocker._url import is_localhost, parse_url
 
 
 @pytest.mark.parametrize("url,expected_host,expected_port", [
