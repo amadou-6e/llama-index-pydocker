@@ -5,6 +5,7 @@ __pycache__/
 specs*
 .spec
 .specs/
+.skill*
 
 # C extensions
 *.so
