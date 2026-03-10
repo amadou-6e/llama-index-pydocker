@@ -1,0 +1,86 @@
+name: CI/CD
+
+on:
+  push:
+    branches:
+      - "*"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: py${{ matrix.python-version }} / ${{ matrix.config.test_file }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        config:
+          - test_file: tests/test_utils.py
+            extras: ""
+          - test_file: tests/test_qdrant.py
+            extras: qdrant
+          - test_file: tests/test_postgres.py
+            extras: postgres
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install py-dockerdb
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install py-dockerdb
+
+      - name: Install llama-index-pydocker (no extras)
+        if: matrix.config.extras == ''
+        run: python -m pip install -e ".[all]"
+
+      - name: Install llama-index-pydocker (with extras)
+        if: matrix.config.extras != ''
+        run: python -m pip install -e ".[${{ matrix.config.extras }}]"
+
+      - name: Install test dependencies
+        run: python -m pip install pytest pytest-timeout docker
+
+      - name: Show Docker info
+        run: docker info
+
+      - name: Run tests
+        run: python -m pytest -vv -s --timeout=300 --timeout-method=thread ${{ matrix.config.test_file }}
+
+  publish:
+    name: Publish to PyPI
+    needs: tests
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: pypi
+      url: https://pypi.org/p/llama-index-pydocker
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build package
+        run: |
+          python -m pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
